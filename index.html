@@ -1,1 +1,197 @@
-<html><head><meta charset="UTF-8"/><title>ElectroVentas</title></head><body><script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script><div id="root"></div><script type="text/babel">function App(){return <h1 style={{color:"orange",fontFamily:"sans-serif",padding:40}}>⚡ ElectroVentas funcionando!</h1>}ReactDOM.createRoot(document.getElementById("root")).render(<App/>)</script></body></html>
+<html><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>ElectroVentas</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/><script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0f1117;font-family:sans-serif}#bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1d27;border-top:1px solid #2d3148;z-index:1000;padding:8px 0}.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:transparent;cursor:pointer;padding:6px 0;color:#94a3b8;font-size:10px;font-weight:600}.bnav-btn.active{color:#f59e0b}@media(max-width:700px){#sidebar{display:none!important}#main{padding:16px 16px 72px!important}#bottom-nav{display:flex!important}}</style></head><body><div id="root"></div><script type="text/babel">
+const {useState,useEffect,useRef}=React;
+const iC=[{id:1,nombre:"Instalaciones García",contacto:"Pedro García",tel:"612345678",ciudad:"Madrid",tipo:"Instalador",ultimaVisita:"2026-05-20",potencial:"Alto"},{id:2,nombre:"Eléctrica del Norte S.L.",contacto:"María López",tel:"634567890",ciudad:"Burgos",tipo:"Mayorista",ultimaVisita:"2026-05-28",potencial:"Medio"},{id:3,nombre:"Obras & Reformas Ruiz",contacto:"Antonio Ruiz",tel:"698123456",ciudad:"Valladolid",tipo:"Instalador",ultimaVisita:"2026-04-15",potencial:"Alto"},{id:4,nombre:"Suministros Mena",contacto:"Laura Mena",tel:"611987654",ciudad:"Segovia",tipo:"Distribuidor",ultimaVisita:"2026-06-01",potencial:"Bajo"}];
+const iP=[{id:1,ref:"ABB-001",nombre:"Interruptor 16A",marca:"ABB",categoria:"Protección",precio:24.50,stock:true},{id:2,ref:"LEG-045",nombre:"Toma schuko",marca:"Legrand",categoria:"Mecanismos",precio:8.90,stock:true},{id:3,ref:"PHI-112",nombre:"Downlight LED 12W",marca:"Philips",categoria:"Iluminación",precio:18.75,stock:false},{id:4,ref:"SCH-007",nombre:"Cuadro 24 módulos",marca:"Schneider",categoria:"Cuadros",precio:67.00,stock:true},{id:5,ref:"OSR-023",nombre:"Tira LED 5m",marca:"Osram",categoria:"Iluminación",precio:32.00,stock:true},{id:6,ref:"ABB-034",nombre:"Diferencial 2P 25A",marca:"ABB",categoria:"Protección",precio:38.20,stock:true}];
+const iPed=[{id:1,cliente:"Instalaciones García",fecha:"2026-06-02",estado:"Confirmado",total:312.50,lineas:4},{id:2,cliente:"Eléctrica del Norte S.L.",fecha:"2026-06-05",estado:"Pendiente",total:890.00,lineas:8},{id:3,cliente:"Obras & Reformas Ruiz",fecha:"2026-05-28",estado:"Entregado",total:154.75,lineas:3}];
+const iV=[{id:1,cliente:"Instalaciones García",ciudad:"Madrid",fecha:"2026-06-10",hora:"10:00",notas:"Catálogo LED 2026",tipo:"Visita comercial",orden:1,lat:40.4168,lng:-3.7038},{id:2,cliente:"Eléctrica del Norte S.L.",ciudad:"Burgos",fecha:"2026-06-10",hora:"14:00",notas:"Seguimiento pedido",tipo:"Seguimiento",orden:2,lat:42.3440,lng:-3.6970},{id:3,cliente:"Obras & Reformas Ruiz",ciudad:"Valladolid",fecha:"2026-06-12",hora:"09:00",notas:"Oferta cuadros",tipo:"Visita comercial",orden:1,lat:41.6523,lng:-4.7245},{id:4,cliente:"Suministros Mena",ciudad:"Segovia",fecha:"2026-06-12",hora:"16:00",notas:"Tarifas 2026",tipo:"Demostración",orden:2,lat:40.9429,lng:-4.1088}];
+const CC={bg:"#0f1117",sur:"#1a1d27",card:"#20243a",acc:"#f59e0b",accs:"#fbbf2420",bl:"#3b82f6",bls:"#3b82f620",gr:"#10b981",grs:"#10b98120",rd:"#ef4444",rds:"#ef444420",tx:"#f1f5f9",mu:"#94a3b8",bo:"#2d3148"};
+const TC={"Visita comercial":"#3b82f6","Seguimiento":"#f59e0b","Demostración":"#8b5cf6","Cobro":"#10b981","Posventa":"#ef4444"};
+const coords={"Madrid":{lat:40.4168,lng:-3.7038},"Burgos":{lat:42.3440,lng:-3.6970},"Valladolid":{lat:41.6523,lng:-4.7245},"Segovia":{lat:40.9429,lng:-4.1088},"Toledo":{lat:39.8628,lng:-4.0273},"Salamanca":{lat:40.9701,lng:-5.6635}};
+const Bdg=({c,col="bl"})=>{const m={bl:[CC.bl,CC.bls],gr:[CC.gr,CC.grs],am:[CC.acc,CC.accs],rd:[CC.rd,CC.rds],gy:[CC.mu,"#94a3b815"]};const[fg,bg]=m[col]||m.bl;return <span style={{background:bg,color:fg,padding:"2px 10px",borderRadius:20,fontSize:11,fontWeight:700,border:`1px solid ${fg}30`}}>{c}</span>};
+const inp={background:CC.sur,border:`1px solid ${CC.bo}`,borderRadius:8,padding:"10px 14px",color:CC.tx,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"};
+function Mapa({vis,setVis,fecha}){
+  const ref=useRef(null);const map=useRef(null);const mrs=useRef({});const rl=useRef(null);
+  const vd=vis.filter(v=>v.fecha===fecha).sort((a,b)=>a.orden-b.orden);
+  const[exp,setExp]=useState(false);const[ed,setEd]=useState(null);
+  useEffect(()=>{if(!ref.current||map.current)return;const L=window.L;const m=L.map(ref.current,{zoomControl:true,scrollWheelZoom:true,tap:true}).setView([40.5,-3.8],6);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:18}).addTo(m);map.current=m;},[]);
+  useEffect(()=>{if(!map.current||!window.L)return;const L=window.L;const m=map.current;Object.values(mrs.current).forEach(x=>m.removeLayer(x));mrs.current={};if(rl.current){m.removeLayer(rl.current);rl.current=null;}if(!vd.length)return;const ll=[];vd.forEach(v=>{const col=TC[v.tipo]||CC.bl;const mk=L.marker([v.lat,v.lng],{icon:L.divIcon({className:"",html:`<div style="width:30px;height:30px;background:${col};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);color:white;font-weight:800;font-size:12px">${v.orden}</span></div>`,iconSize:[30,30],iconAnchor:[15,30],popupAnchor:[0,-30]}),draggable:true});mk.bindPopup(`<b>${v.cliente}</b><br/><small>${v.hora} · ${v.tipo}</small><br/><small>${v.notas}</small><br/><small style="color:#3b82f6">Arrastra para mover</small>`);mk.on("dragend",e=>{const{lat,lng}=e.target.getLatLng();setVis(p=>p.map(x=>x.id===v.id?{...x,lat,lng}:x));});mk.addTo(m);mrs.current[v.id]=mk;ll.push([v.lat,v.lng]);});if(ll.length>1)rl.current=L.polyline(ll,{color:CC.acc,weight:3,dashArray:"8 6",opacity:0.8}).addTo(m);const g=L.featureGroup(Object.values(mrs.current));m.fitBounds(g.getBounds().pad(0.3));},[vd.length,fecha,JSON.stringify(vd.map(v=>({lat:v.lat,lng:v.lng,id:v.id})))]);
+  useEffect(()=>{setTimeout(()=>{if(map.current)map.current.invalidateSize();},300);},[exp]);
+  const mv=(id,d)=>setVis(p=>{const ds=p.filter(v=>v.fecha===fecha).sort((a,b)=>a.orden-b.orden);const i=ds.findIndex(v=>v.id===id);const ni=i+d;if(ni<0||ni>=ds.length)return p;const u=[...ds];[u[i].orden,u[ni].orden]=[u[ni].orden,u[i].orden];return p.map(v=>{const f=u.find(x=>x.id===v.id);return f?{...v,orden:f.orden}:v;});});
+  return(<div style={{background:CC.card,border:`1px solid ${CC.bo}`,borderRadius:16,overflow:"hidden",marginBottom:20}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:`1px solid ${CC.bo}`}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:18}}>🗺️</span><span style={{color:CC.tx,fontWeight:700,fontSize:14}}>Ruta del día</span><Bdg c={`${vd.length} paradas`} col="am"/></div>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>{if(map.current){const g=window.L.featureGroup(Object.values(mrs.current));if(Object.keys(mrs.current).length)map.current.fitBounds(g.getBounds().pad(0.3));else map.current.setView([40.5,-3.8],6);}}} style={{background:CC.sur,color:CC.mu,border:`1px solid ${CC.bo}`,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12}}>🔍</button>
+        <button onClick={()=>setExp(e=>!e)} style={{background:CC.accs,color:CC.acc,border:`1px solid ${CC.acc}40`,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:600}}>{exp?"⬆️":"⬇️"}</button>
+      </div>
+    </div>
+    <div ref={ref} style={{width:"100%",height:exp?"500px":"280px",transition:"height 0.3s"}}/>
+    {vd.length>0&&<div style={{padding:"14px 18px",borderTop:`1px solid ${CC.bo}`}}>
+      <div style={{color:CC.mu,fontSize:11,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Orden de visitas</div>
+      {vd.map((v,i)=>ed===v.id?<EditV key={v.id} v={v} onS={(id,c)=>{setVis(p=>p.map(x=>x.id===id?{...x,...c}:x));setEd(null);}} onC={()=>setEd(null)}/>:
+        <div key={v.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 0",borderBottom:i<vd.length-1?`1px solid ${CC.bo}`:"none"}}>
+          <div style={{width:26,height:26,borderRadius:"50%",background:TC[v.tipo]||CC.bl,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12,flexShrink:0}}>{v.orden}</div>
+          <div style={{flex:1,minWidth:0}}><div style={{color:CC.tx,fontWeight:600,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.cliente}</div><div style={{color:CC.mu,fontSize:11}}>{v.hora} · {v.ciudad}</div></div>
+          <div style={{display:"flex",gap:4}}>
+            <button onClick={()=>mv(v.id,-1)} disabled={i===0} style={{background:CC.sur,color:i===0?CC.bo:CC.mu,border:`1px solid ${CC.bo}`,borderRadius:6,width:26,height:26,cursor:i===0?"default":"pointer",fontSize:12}}>↑</button>
+            <button onClick={()=>mv(v.id,1)} disabled={i===vd.length-1} style={{background:CC.sur,color:i===vd.length-1?CC.bo:CC.mu,border:`1px solid ${CC.bo}`,borderRadius:6,width:26,height:26,cursor:i===vd.length-1?"default":"pointer",fontSize:12}}>↓</button>
+            <button onClick={()=>setEd(v.id)} style={{background:CC.bls,color:CC.bl,border:"none",borderRadius:6,padding:"4px 9px",cursor:"pointer",fontSize:11,fontWeight:600}}>✏️</button>
+          </div>
+        </div>)}
+    </div>}
+    {!vd.length&&<div style={{padding:28,textAlign:"center",color:CC.mu,fontSize:13}}>Sin visitas para este día.</div>}
+  </div>);
+}
+function EditV({v,onS,onC}){
+  const[f,setF]=useState({hora:v.hora,tipo:v.tipo,notas:v.notas,ciudad:v.ciudad});
+  return(<div style={{background:CC.sur,borderRadius:10,padding:12,marginBottom:8,border:`1px solid ${CC.acc}40`}}>
+    <div style={{color:CC.acc,fontSize:12,fontWeight:700,marginBottom:8}}>✏️ {v.cliente}</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+      <input value={f.hora} onChange={e=>setF({...f,hora:e.target.value})} type="time" style={inp}/>
+      <select value={f.tipo} onChange={e=>setF({...f,tipo:e.target.value})} style={inp}>{["Visita comercial","Seguimiento","Demostración","Cobro","Posventa"].map(t=><option key={t}>{t}</option>)}</select>
+      <select value={f.ciudad} onChange={e=>setF({...f,ciudad:e.target.value})} style={inp}>{Object.keys(coords).map(c=><option key={c}>{c}</option>)}</select>
+      <input value={f.notas} onChange={e=>setF({...f,notas:e.target.value})} placeholder="Notas" style={inp}/>
+    </div>
+    <div style={{display:"flex",gap:8}}>
+      <button onClick={()=>onS(v.id,{...f,...(coords[f.ciudad]||{lat:v.lat,lng:v.lng})})} style={{background:CC.gr,color:"#fff",border:"none",borderRadius:7,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:700}}>Guardar</button>
+      <button onClick={onC} style={{background:CC.sur,color:CC.mu,border:`1px solid ${CC.bo}`,borderRadius:7,padding:"7px 14px",cursor:"pointer",fontSize:12}}>Cancelar</button>
+    </div>
+  </div>);
+}
+function App(){
+  const[tab,setTab]=useState("dash");
+  const[clis,setClis]=useState(iC);
+  const[prods]=useState(iP);
+  const[peds,setPeds]=useState(iPed);
+  const[vis,setVis]=useState(iV);
+  const nav=[{id:"dash",l:"Panel",i:"📊"},{id:"clis",l:"Clientes",i:"👥"},{id:"prods",l:"Catálogo",i:"⚡"},{id:"peds",l:"Pedidos",i:"📋"},{id:"vis",l:"Mapa",i:"🗺️"}];
+  const s={color:CC.tx,fontSize:22,fontWeight:800,margin:"0 0 16px"};
+  const fechas=[...new Set(vis.map(v=>v.fecha))].sort();
+  const[fecha,setFecha]=useState(fechas[0]||"2026-06-10");
+  return(<div style={{minHeight:"100vh",background:CC.bg,display:"flex"}} id="app">
+    <div id="sidebar" style={{width:200,background:CC.sur,borderRight:`1px solid ${CC.bo}`,padding:"24px 14px",display:"flex",flexDirection:"column",flexShrink:0}}>
+      <div style={{marginBottom:28,paddingLeft:6}}><div style={{fontSize:22}}>⚡</div><div style={{color:CC.tx,fontWeight:800,fontSize:14}}>ElectroVentas</div><div style={{color:CC.mu,fontSize:11}}>Agente Comercial</div></div>
+      {nav.map(n=><button key={n.id} onClick={()=>setTab(n.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 10px",marginBottom:4,borderRadius:10,border:"none",cursor:"pointer",textAlign:"left",background:tab===n.id?CC.accs:"transparent",color:tab===n.id?CC.acc:CC.mu,fontWeight:tab===n.id?700:500,fontSize:13}}><span style={{fontSize:16}}>{n.i}</span>{n.l}</button>)}
+    </div>
+    <div id="main" style={{flex:1,padding:"28px 24px",overflowY:"auto"}}>
+      {tab==="dash"&&<div>
+        <h2 style={s}>Panel</h2>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:20}}>
+          {[[" 👥",clis.length,"Clientes"],[" ⚡",peds.filter(p=>p.estado==="Pendiente").length,"Pendientes"],[" 📅",vis.length,"Visitas"],[" 💶",`${peds.reduce((a,b)=>a+b.total,0).toFixed(0)}€`,"Facturación"]].map(([i,v,l])=>(
+            <div key={l} style={{background:CC.card,border:`1px solid ${CC.bo}`,borderRadius:14,padding:"16px 14px"}}><div style={{fontSize:22}}>{i}</div><div style={{fontSize:24,fontWeight:800,color:CC.tx,fontFamily:"monospace"}}>{v}</div><div style={{color:CC.mu,fontSize:12}}>{l}</div></div>))}
+        </div>
+        <div style={{background:CC.card,border:`1px solid ${CC.bo}`,borderRadius:14,padding:16}}>
+          <div style={{color:CC.tx,fontWeight:700,fontSize:14,marginBottom:12}}>📅 Próximas visitas</div>
+          {[...vis].sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,4).map(v=>(
+            <div key={v.id} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:`1px solid ${CC.bo}`}}>
+              <div style={{background:CC.accs,borderRadius:8,padding:"5px 8px",textAlign:"center",minWidth:38}}><div style={{color:CC.acc,fontSize:12,fontWeight:800}}>{v.fecha.split("-")[2]}</div><div style={{color:CC.mu,fontSize:9}}>JUN</div></div>
+              <div><div style={{color:CC.tx,fontSize:13,fontWeight:600}}>{v.cliente}</div><div style={{color:CC.mu,fontSize:11}}>{v.hora} · {v.tipo}</div></div>
+            </div>))}
+        </div>
+      </div>}
+      {tab==="clis"&&<Clis clis={clis} setClis={setClis}/>}
+      {tab==="prods"&&<Prods prods={prods}/>}
+      {tab==="peds"&&<Peds peds={peds} setPeds={setPeds} clis={clis}/>}
+      {tab==="vis"&&<div>
+        <h2 style={s}>Agenda & Mapa</h2>
+        <div style={{display:"flex",gap:8,marginBottom:16,overflowX:"auto",paddingBottom:4,alignItems:"center"}}>
+          <span style={{color:CC.mu,fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>DÍA:</span>
+          {fechas.map(f=><button key={f} onClick={()=>setFecha(f)} style={{background:fecha===f?CC.acc:CC.card,color:fecha===f?"#000":CC.mu,border:`1px solid ${fecha===f?CC.acc:CC.bo}`,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:fecha===f?700:500,whiteSpace:"nowrap"}}>{f.split("-").slice(1).join("/")} ({vis.filter(v=>v.fecha===f).length})</button>)}
+        </div>
+        <Mapa vis={vis} setVis={setVis} fecha={fecha}/>
+        <AddVis vis={vis} setVis={setVis} clis={clis} fechaInicial={fecha}/>
+        <div style={{display:"grid",gap:10}}>
+          {vis.filter(v=>v.fecha===fecha).sort((a,b)=>a.orden-b.orden).map(v=>(
+            <div key={v.id} style={{background:CC.card,border:`1px solid ${CC.bo}`,borderRadius:12,padding:14,display:"flex",gap:12,alignItems:"center"}}>
+              <div style={{width:28,height:28,borderRadius:"50%",background:TC[v.tipo]||CC.bl,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12,flexShrink:0}}>{v.orden}</div>
+              <div style={{flex:1}}><div style={{color:CC.tx,fontWeight:700,fontSize:13}}>{v.cliente}</div><div style={{color:CC.mu,fontSize:11}}>🕐 {v.hora} · 📍 {v.ciudad}</div></div>
+              <button onClick={()=>setVis(vis.filter(x=>x.id!==v.id))} style={{background:CC.rds,color:CC.rd,border:"none",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:12}}>🗑️</button>
+            </div>))}
+        </div>
+      </div>}
+    </div>
+    <div id="bottom-nav">{nav.map(n=><button key={n.id} className={`bnav-btn${tab===n.id?" active":""}`} onClick={()=>setTab(n.id)}><span style={{fontSize:20}}>{n.i}</span>{n.l}</button>)}</div>
+  </div>);
+}
+function Clis({clis,setClis}){
+  const[s,setS]=useState("");const[sf,setSf]=useState(false);const[f,setF]=useState({nombre:"",contacto:"",tel:"",ciudad:"Madrid",tipo:"Instalador",potencial:"Medio"});
+  const fl=clis.filter(c=>c.nombre.toLowerCase().includes(s.toLowerCase())||c.ciudad.toLowerCase().includes(s.toLowerCase()));
+  const add=()=>{if(!f.nombre)return;setClis([...clis,{...f,id:Date.now(),ultimaVisita:new Date().toISOString().split("T")[0]}]);setF({nombre:"",contacto:"",tel:"",ciudad:"Madrid",tipo:"Instalador",potencial:"Medio"});setSf(false);};
+  const pc={Alto:"gr",Medio:"am",Bajo:"rd"};
+  return(<div><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><h2 style={{color:CC.tx,fontSize:22,fontWeight:800}}>Clientes</h2><button onClick={()=>setSf(!sf)} style={{background:CC.acc,color:"#000",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,cursor:"pointer",fontSize:13}}>➕</button></div>
+    {sf&&<div style={{background:CC.card,border:`1px solid ${CC.acc}40`,borderRadius:14,padding:16,marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <input placeholder="Empresa *" value={f.nombre} onChange={e=>setF({...f,nombre:e.target.value})} style={inp}/>
+        <input placeholder="Contacto" value={f.contacto} onChange={e=>setF({...f,contacto:e.target.value})} style={inp}/>
+        <input placeholder="Teléfono" value={f.tel} onChange={e=>setF({...f,tel:e.target.value})} style={inp}/>
+        <select value={f.ciudad} onChange={e=>setF({...f,ciudad:e.target.value})} style={inp}>{Object.keys(coords).map(c=><option key={c}>{c}</option>)}</select>
+        <select value={f.tipo} onChange={e=>setF({...f,tipo:e.target.value})} style={inp}>{["Instalador","Mayorista","Distribuidor","Contratista"].map(t=><option key={t}>{t}</option>)}</select>
+        <select value={f.potencial} onChange={e=>setF({...f,potencial:e.target.value})} style={inp}>{["Alto","Medio","Bajo"].map(t=><option key={t}>{t}</option>)}</select>
+      </div>
+      <div style={{display:"flex",gap:8}}><button onClick={add} style={{background:CC.gr,color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:700,cursor:"pointer",fontSize:13}}>Guardar</button><button onClick={()=>setSf(false)} style={{background:CC.sur,color:CC.mu,border:`1px solid ${CC.bo}`,borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:13}}>Cancelar</button></div>
+    </div>}
+    <div style={{position:"relative",marginBottom:12}}><span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}>🔍</span><input placeholder="Buscar..." value={s} onChange={e=>setS(e.target.value)} style={{...inp,paddingLeft:36}}/></div>
+    <div style={{display:"grid",gap:10}}>{fl.map(c=><div key={c.id} style={{background:CC.card,border:`1px solid ${CC.bo}`,borderRadius:12,padding:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{color:CC.tx,fontWeight:700,fontSize:14}}>{c.nombre}</span><Bdg c={c.potencial} col={pc[c.potencial]}/></div>
+      <div style={{color:CC.mu,fontSize:12,display:"flex",flexWrap:"wrap",gap:"4px 12px"}}><span>👤 {c.contacto}</span><span>📞 {c.tel}</span><span>📍 {c.ciudad}</span></div>
+      <div style={{marginTop:8}}><a href={`tel:${c.tel}`} style={{background:CC.accs,color:CC.acc,borderRadius:7,padding:"5px 12px",fontSize:11,fontWeight:600,textDecoration:"none"}}>📞 Llamar</a></div>
+    </div>)}</div>
+  </div>);
+}
+function Prods({prods}){
+  const[s,setS]=useState("");const[cat,setCat]=useState("Todos");
+  const cats=["Todos",...new Set(prods.map(p=>p.categoria))];
+  const fl=prods.filter(p=>(cat==="Todos"||p.categoria===cat)&&(p.nombre.toLowerCase().includes(s.toLowerCase())||p.ref.toLowerCase().includes(s.toLowerCase())));
+  return(<div><h2 style={{color:CC.tx,fontSize:22,fontWeight:800,marginBottom:14}}>Catálogo</h2>
+    <div style={{position:"relative",marginBottom:10}}><span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}>🔍</span><input placeholder="Buscar..." value={s} onChange={e=>setS(e.target.value)} style={{...inp,paddingLeft:36}}/></div>
+    <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:4}}>{cats.map(c=><button key={c} onClick={()=>setCat(c)} style={{background:cat===c?CC.acc:CC.card,color:cat===c?"#000":CC.mu,border:`1px solid ${cat===c?CC.acc:CC.bo}`,borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:cat===c?700:500,whiteSpace:"nowrap"}}>{c}</button>)}</div>
+    <div style={{display:"grid",gap:10}}>{fl.map(p=><div key={p.id} style={{background:CC.card,border:`1px solid ${CC.bo}`,borderRadius:12,padding:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><Bdg c={p.categoria} col="bl"/><Bdg c={p.stock?"En stock":"Sin stock"} col={p.stock?"gr":"rd"}/></div>
+      <div style={{color:CC.tx,fontWeight:700,fontSize:14,marginBottom:4}}>{p.nombre}</div>
+      <div style={{color:CC.mu,fontSize:12,marginBottom:10}}>🏷️ {p.ref} · 🏭 {p.marca}</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{color:CC.acc,fontSize:18,fontWeight:800}}>{p.precio.toFixed(2)}€</span><button style={{background:CC.bl,color:"#fff",border:"none",borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:600}}>+ Pedido</button></div>
+    </div>)}</div>
+  </div>);
+}
+function Peds({peds,setPeds,clis}){
+  const[sf,setSf]=useState(false);const[f,setF]=useState({cliente:"",fecha:new Date().toISOString().split("T")[0],estado:"Pendiente",total:"",lineas:""});
+  const add=()=>{if(!f.cliente||!f.total)return;setPeds([...peds,{...f,id:Date.now(),total:parseFloat(f.total),lineas:parseInt(f.lineas)||1}]);setF({cliente:"",fecha:new Date().toISOString().split("T")[0],estado:"Pendiente",total:"",lineas:""});setSf(false);};
+  const ec={Confirmado:"bl",Pendiente:"am",Entregado:"gr",Cancelado:"rd"};
+  return(<div><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><h2 style={{color:CC.tx,fontSize:22,fontWeight:800}}>Pedidos</h2><button onClick={()=>setSf(!sf)} style={{background:CC.acc,color:"#000",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,cursor:"pointer",fontSize:13}}>➕</button></div>
+    {sf&&<div style={{background:CC.card,border:`1px solid ${CC.acc}40`,borderRadius:14,padding:16,marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <select value={f.cliente} onChange={e=>setF({...f,cliente:e.target.value})} style={inp}><option value="">-- Cliente --</option>{clis.map(c=><option key={c.id}>{c.nombre}</option>)}</select>
+        <input type="date" value={f.fecha} onChange={e=>setF({...f,fecha:e.target.value})} style={inp}/>
+        <input placeholder="Importe (€)" value={f.total} onChange={e=>setF({...f,total:e.target.value})} style={inp}/>
+        <input placeholder="Nº líneas" value={f.lineas} onChange={e=>setF({...f,lineas:e.target.value})} style={inp}/>
+      </div>
+      <div style={{display:"flex",gap:8}}><button onClick={add} style={{background:CC.gr,color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:700,cursor:"pointer",fontSize:13}}>Guardar</button><button onClick={()=>setSf(false)} style={{background:CC.sur,color:CC.mu,border:`1px solid ${CC.bo}`,borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:13}}>Cancelar</button></div>
+    </div>}
+    <div style={{display:"grid",gap:10}}>{peds.map(p=><div key={p.id} style={{background:CC.card,border:`1px solid ${CC.bo}`,borderRadius:12,padding:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div><div style={{color:CC.tx,fontWeight:700,fontSize:14}}>{p.cliente}</div><div style={{color:CC.mu,fontSize:12}}>{p.fecha} · {p.lineas} líneas</div></div>
+        <div style={{textAlign:"right"}}><div style={{color:CC.acc,fontWeight:800,fontSize:16}}>{p.total.toFixed(2)}€</div><Bdg c={p.estado} col={ec[p.estado]}/></div>
+      </div>
+    </div>)}</div>
+  </div>);
+}
+function AddVis({vis,setVis,clis,fechaInicial}){
+  const[sf,setSf]=useState(false);const[f,setF]=useState({cliente:"",ciudad:"Madrid",fecha:fechaInicial,hora:"10:00",tipo:"Visita comercial",notas:""});
+  const add=()=>{if(!f.cliente||!f.fecha)return;const c=coords[f.ciudad]||{lat:40.4168,lng:-3.7038};const d=vis.filter(v=>v.fecha===f.fecha);const mo=d.length>0?Math.max(...d.map(v=>v.orden)):0;setVis([...vis,{...f,...c,id:Date.now(),orden:mo+1}]);setF({cliente:"",ciudad:"Madrid",fecha:fechaInicial,hora:"10:00",tipo:"Visita comercial",notas:""});setSf(false);};
+  return(<div style={{marginBottom:14}}>
+    {!sf&&<button onClick={()=>setSf(true)} style={{background:CC.acc,color:"#000",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,cursor:"pointer",fontSize:13,marginBottom:14}}>➕ Nueva visita</button>}
+    {sf&&<div style={{background:CC.card,border:`1px solid ${CC.acc}40`,borderRadius:14,padding:16,marginBottom:14}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+        <select value={f.cliente} onChange={e=>setF({...f,cliente:e.target.value})} style={inp}><option value="">-- Cliente --</option>{clis.map(c=><option key={c.id}>{c.nombre}</option>)}</select>
+        <select value={f.ciudad} onChange={e=>setF({...f,ciudad:e.target.value})} style={inp}>{Object.keys(coords).map(c=><option key={c}>{c}</option>)}</select>
+        <input type="date" value={f.fecha} onChange={e=>setF({...f,fecha:e.target.value})} style={inp}/>
+        <input type="time" value={f.hora} onChange={e=>setF({...f,hora:e.target.value})} style={inp}/>
+        <select value={f.tipo} onChange={e=>setF({...f,tipo:e.target.value})} style={inp}>{["Visita comercial","Seguimiento","Demostración","Cobro","Posventa"].map(t=><option key={t}>{t}</option>)}</select>
+        <input placeholder="Notas..." value={f.notas} onChange={e=>setF({...f,notas:e.target.value})} style={inp}/>
+      </div>
+      <div style={{display:"flex",gap:8}}><button onClick={add} style={{background:CC.gr,color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontWeight:700,cursor:"pointer",fontSize:13}}>Guardar</button><button onClick={()=>setSf(false)} style={{background:CC.sur,color:CC.mu,border:`1px solid ${CC.bo}`,borderRadius:8,padding:"9px 18px",cursor:"pointer",fontSize:13}}>Cancelar</button></div>
+    </div>}
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>
